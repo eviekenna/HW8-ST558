@@ -82,4 +82,158 @@ After looking at the summaries accross the data here the FunctioningDay data is 
 ```{r}
 bike_data <- bike_data |> select(-FunctioningDay)
 ```
+Summarizing across the hours so that each day has one observation associated with it. 
+```{r}
+library(dplyr)
+
+bike_daily <- bike_data |>
+  group_by(Date, Seasons, Holiday) |>
+  summarize(
+    # totals per day
+    TotalBikes = sum(RentedBikeCount, na.rm = TRUE),
+    TotalRainfall = sum(Rainfall, na.rm = TRUE),
+    TotalSnowfall = sum(Snowfall, na.rm = TRUE),
+
+    # daily mean weather conditions
+    MeanTemp = mean(Temperature, na.rm = TRUE),
+    MeanHumidity = mean(Humidity, na.rm = TRUE),
+    MeanWindSpeed = mean(WindSpeed, na.rm = TRUE),
+    MeanVisibility = mean(Visibility, na.rm = TRUE),
+    MeanDewPoint = mean(DewPointTemperature, na.rm = TRUE),
+    MeanSolarRadiation = mean(SolarRadiation, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+```
+Creating a summary of the variables in the new data frame. 
+```{r}
+library(dplyr)
+
+# Overall summaries for variables
+daily_summary <- bike_daily |>
+  summarize(
+    n_days        = n(),
+    bikes_mean    = mean(TotalBikes),  bikes_sd = sd(TotalBikes),
+    bikes_median  = median(TotalBikes), bikes_IQR = IQR(TotalBikes),
+    rain_sum      = sum(TotalRainfall), snow_sum = sum(TotalSnowfall),
+    temp_mean     = mean(MeanTemp),     temp_sd  = sd(MeanTemp),
+    hum_mean      = mean(MeanHumidity), wind_mean = mean(MeanWindSpeed),
+    vis_mean      = mean(MeanVisibility), dew_mean = mean(MeanDewPoint),
+    solar_mean    = mean(MeanSolarRadiation)
+  )
+daily_summary
+
+```
+Looking at summaries based on Season and Holiday. 
+```{r}
+# Summaries by Season and Holiday
+by_season <- bike_daily |>
+  group_by(Seasons) |>
+  summarise(
+    days = n(),
+    bikes_mean = mean(TotalBikes), bikes_median = median(TotalBikes),
+    temp_mean  = mean(MeanTemp),   rain_sum = sum(TotalRainfall),
+    .groups = "drop"
+  )
+
+by_holiday <- bike_daily |>
+  group_by(Holiday) |>
+  summarise(
+    days = n(),
+    bikes_mean = mean(TotalBikes), bikes_median = median(TotalBikes),
+    rain_sum   = sum(TotalRainfall), snow_sum = sum(TotalSnowfall),
+    .groups = "drop"
+  )
+
+by_season
+by_holiday
+```
+A few plots to visualize the data better. 
+```{r}
+library(ggplot2)
+#Temperature vs Rentals
+ggplot(bike_daily, aes(x = MeanTemp, y = TotalBikes, color = Seasons)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(se = FALSE) +
+  labs(title = "Temperature vs Total Bikes Rented", x = "Mean Daily Temp (°C)", y = "Total Bikes Rented")
+
+```
+
+
+```{r}
+# Boxplots of rentals by Season and Holiday
+#Season
+ggplot(bike_daily, aes(x = Seasons, y = TotalBikes, fill = Seasons)) +
+  geom_boxplot(outlier.alpha = 0.3) +
+  labs(title = "Distribution of Daily Rentals by Season", x = "Season", y = "Total Bikes Rented") +
+  theme(legend.position = "none")
+#Holiday
+ggplot(bike_daily, aes(x = Holiday, y = TotalBikes, fill = Holiday)) +
+  geom_boxplot(outlier.alpha = 0.3) +
+  labs(title = "Daily Rentals: Holiday vs Non-Holiday", x = "Holiday", y = "Total Bikes") +
+  theme(legend.position = "none")
+
+```
+Seeing if there are any correlations between the numeric variables
+```{r}
+
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+
+bike_daily |>
+  select(where(is.numeric)) |>
+  pivot_longer(everything(), names_to = "Variable", values_to = "Value") |>
+  ggplot(aes(x = Value, fill = Variable)) +
+  geom_histogram(show.legend = FALSE, bins = 30, alpha = 0.7) +
+  facet_wrap(~ Variable, scales = "free", ncol = 3) +
+  labs(title = "Distribution of Numeric Variables",
+       x = "Value", y = "Frequency") +
+  theme_minimal()
+```
+```{r}
+num_vars <- c("MeanTemp", "MeanHumidity", "MeanWindSpeed",
+              "TotalRainfall", "TotalSnowfall", "MeanVisibility")
+
+for (v in num_vars) {
+  p <- ggplot(bike_daily, aes_string(x = v, y = "TotalBikes")) +
+    geom_point(alpha = 0.5, color = "darkblue") +
+    geom_smooth(method = "lm", se = FALSE, color = "red", linewidth = 0.8) +
+    labs(title = paste("Total Bikes vs", v),
+         x = v, y = "Total Daily Rentals") +
+    theme_minimal()
+  print(p)
+}
+```
+## Slitting the Data
+Splitting the data using tidymodels split and stratifying based on seasons. Using a 25/75 split. 
+```{r}
+library(tidymodels)
+set.seed(123)  # for reproducibility
+
+# 75/25 split, stratified by Seasons
+bike_split <- initial_split(bike_daily, prop = 0.75, strata = Seasons)
+
+# Create training and testing sets
+bike_train <- training(bike_split)
+bike_test  <- testing(bike_split)
+
+# check sizes
+nrow(bike_train)
+nrow(bike_test)
+```
+Creating a 10-fold CV split on the training set
+```{r}
+library(tidymodels)
+
+# 10-fold cross-validation, stratified by Seasons
+set.seed(123)
+bike_folds <- vfold_cv(bike_train, v = 10, strata = Seasons)
+
+# View structure
+bike_folds
+
+```
+#Fitting MLR Models
+
 
