@@ -3,4 +3,83 @@ title: "HW8-Basic Modeling Practice"
 format: html
 editor: visual
 ---
+##Reading the Data
+```{r}
+  library(readr)
+bike_data <- read_csv("SeoulBikeData.csv", locale = locale(encoding = "latin1"))
+```
+##EDA
+First we need to investigate the data and understand how it is stored. 
+
+Checking for missing values in the dataset.
+```{r}
+colSums(is.na(bike_data))
+```
+We can see from the output that there are no missing values in this data set. 
+
+Next we look at the column types and the values within the columns to make sure that they are consistent with what we would expect. Using str to show us how it is stored.
+
+```{r}
+str(bike_data)
+```
+Check the unique levels of Seasons and Holiday
+```{r}
+unique(bike_data$Seasons)
+unique(bike_data$Holiday)
+```
+Change the way Seasons, Holiday and Functioning day are stored to be a factors with ordered levels and convert the date column to dmy using the lubridate package date column. 
+```{r}
+library(lubridate)
+bike_data|>
+  mutate(Holiday=as.factor(Holiday),
+         Seasons=factor(Seasons, levels=c("Winter","Spring","Summer","Autumn")),
+         Date=dmy(Date),
+         `Functioning Day`= as.factor(`Functioning Day`))
+
+
+```
+Look at some quick numerical summaries of the data using the psych describe package.
+```{r}
+psych::describe(bike_data)
+```
+Rename all of the variables to have easier names. 
+```{r}
+bike_data<- bike_data|>
+  rename(Temperature=`Temperature(°C)`, Visibility=`Visibility (10m)`,DewPointTemperature=`Dew point temperature(°C)`,SolarRadiation=`Solar Radiation (MJ/m2)`,Humidity=`Humidity(%)`,WindSpeed=`Wind speed (m/s)`,Rainfall=`Rainfall(mm)`, RentedBikeCount=`Rented Bike Count`, Snowfall=`Snowfall (cm)`,FunctioningDay=`Functioning Day`)
+```
+Looking at some summary statistics of the numerical data.
+```{r}
+library(dplyr)
+bike_data |>
+  summarize(across(where(is.numeric),
+                   list(mean = mean, median = median, sd = sd, min = min, max = max),
+                   .names = "{.fn}_{.col}"))
+```
+
+Now focusing on RentedBikeCount accross the catagorical variables.
+```{r}
+library(dplyr)
+bike_data |>
+  group_by(Seasons) |>
+  summarize(mean_rent = mean(RentedBikeCount),
+            median_rent = median(RentedBikeCount),
+            sd_rent = sd(RentedBikeCount),
+            n = n())
+
+bike_data |>
+  group_by(Holiday) |>
+  summarize(mean_rent = mean(RentedBikeCount),
+            median_rent = median(RentedBikeCount),
+            sd_rent = sd(RentedBikeCount))
+
+bike_data |>
+  group_by(FunctioningDay) |>
+  summarize(mean_rent = mean(RentedBikeCount),
+            median_rent = median(RentedBikeCount))
+
+```
+After looking at the summaries accross the data here the FunctioningDay data is always yes and never no so it provides no useful information for analysis so the decision here is to drop that column. 
+```{r}
+bike_data <- bike_data |> select(-FunctioningDay)
+```
 
