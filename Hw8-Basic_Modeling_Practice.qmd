@@ -30,6 +30,8 @@ unique(bike_data$Holiday)
 Change the way Seasons, Holiday and Functioning day are stored to be a factors with ordered levels and convert the date column to dmy using the lubridate package date column. 
 ```{r}
 library(lubridate)
+library(dplyr)
+library(tidyverse)
 bike_data|>
   mutate(Holiday=as.factor(Holiday),
          Seasons=factor(Seasons, levels=c("Winter","Spring","Summer","Autumn")),
@@ -210,6 +212,8 @@ Splitting the data using tidymodels split and stratifying based on seasons. Usin
 ```{r}
 library(tidymodels)
 set.seed(123)  # for reproducibility
+bike_daily<- bike_daily|>
+  mutate(Date= as.Date(Date, format="%d/%m/%Y"))
 
 # 75/25 split, stratified by Seasons
 bike_split <- initial_split(bike_daily, prop = 0.75, strata = Seasons)
@@ -222,6 +226,15 @@ bike_test  <- testing(bike_split)
 nrow(bike_train)
 nrow(bike_test)
 ```
+```{r}
+bike_train <- bike_train |>
+  mutate(Date = as.Date(Date, format = "%d/%m/%Y"))
+
+bike_test <- bike_test |>
+  mutate(Date = as.Date(Date, format = "%d/%m/%Y"))
+
+```
+
 Creating a 10-fold CV split on the training set
 ```{r}
 library(tidymodels)
@@ -236,4 +249,160 @@ bike_folds
 ```
 #Fitting MLR Models
 
+
+```{r}
+library(tidymodels)
+library(dplyr)
+#1st Recipie
+rec_mlr_1 <- recipe(TotalBikes ~ ., data = bike_train) |>
+  # 1) Derive day-of-week from Date, then build weekday/weekend factor
+  step_date(Date, features = "dow", label = TRUE) |>        # creates Date_dow as ordered factor (Mon,...,Sun)
+  step_mutate(day_type = factor(if_else(Date_dow %in% c("Sat","Sun"),
+                                        "Weekend", "Weekday"))) |>
+  step_rm(Date_dow) |>                                       # drop intermediate
+  update_role(Date, new_role = "ID") |>                      # keep Date only as an ID (ignored by model)
+
+  # 2) Standardize numeric predictors (scales differ)
+  step_normalize(all_numeric_predictors()) |>
+
+  # 3) Dummy-code categorical predictors (Seasons, Holiday, day_type)
+  step_dummy(all_nominal_predictors(), one_hot = TRUE)
+
+
+
+```
+```{r}
+library(tidymodels)
+library(dplyr)
+
+# Recipe 2
+rec_mlr_2 <- recipe(TotalBikes ~ ., data = bike_train) |>
+  # 1) Use Date to create weekday/weekend, then keep Date as an ID
+  step_date(Date, features = "dow", label = TRUE) |>               # creates Date_dow
+  step_mutate(day_type = factor(if_else(Date_dow %in% c("Sat","Sun"),
+                                        "Weekend", "Weekday"))) |>
+  step_rm(Date_dow) |>
+  update_role(Date, new_role = "ID") |>                             # exclude from modeling
+
+  # 2) Dummy-code categorical predictors (Seasons, Holiday, day_type)
+  step_dummy(all_nominal_predictors(), one_hot = TRUE) |>
+
+  # 3) Add interactions:
+  #    - Seasons × Holiday  (all season dummies with all holiday dummies)
+  #    - Seasons × MeanTemp (each season dummy with temperature)
+  #    - MeanTemp × TotalRainfall
+  step_interact(terms = ~ starts_with("Seasons_"):starts_with("Holiday_")
+                        + starts_with("Seasons_"):MeanTemp
+                        + MeanTemp:TotalRainfall) |>
+
+  # 4) Standardize all numeric predictors (after creating interaction columns)
+  step_normalize(all_numeric_predictors())
+
+
+
+```
+
+```{r}
+library(tidymodels)
+library(dplyr)
+
+# Identify the ORIGINAL numeric predictors 
+num_base <- bike_train |>
+  select(where(is.numeric), -TotalBikes) |>
+  names()
+
+# Recipe 3
+rec_mlr_3 <- recipe(TotalBikes ~ ., data = bike_train) |>
+  # 1) Derive weekday/weekend from Date; keep Date only as an ID
+  step_date(Date, features = "dow", label = TRUE) |>
+  step_mutate(day_type = factor(if_else(Date_dow %in% c("Sat","Sun"),
+                                        "Weekend", "Weekday"))) |>
+  step_rm(Date_dow) %>%
+  update_role(Date, new_role = "ID") |>
+
+  # 2) Dummy-code categorical predictors first (so we can form interactions with dummies)
+  step_dummy(all_nominal_predictors(), one_hot = TRUE) |>
+
+  # 3) Interactions (same as Recipe 2)
+  step_interact(terms = ~ starts_with("Seasons_"):starts_with("Holiday_")
+                        + starts_with("Seasons_"):MeanTemp
+                        + MeanTemp:TotalRainfall) |>
+
+  # 4) Quadratic terms 
+  step_poly(all_of(num_base), degree = 2, options = list(raw = TRUE)) |>
+
+  # 5) Standardize all numeric predictors (includes the squared terms)
+  step_normalize(all_numeric_predictors())
+
+
+```
+
+```{r}
+library(tidymodels)
+library(dplyr)
+
+# Model spec
+lm_spec <- linear_reg() |>
+  set_engine("lm")
+
+#Workflows for the three recipes 
+wf1 <- workflow() %>% add_model(lm_spec) %>% add_recipe(rec_mlr_1)
+wf2 <- workflow() %>% add_model(lm_spec) %>% add_recipe(rec_mlr_2)
+wf3 <- workflow() %>% add_model(lm_spec) %>% add_recipe(rec_mlr_3)
+
+wfs <- list(
+  rec1 = wf1,
+  rec2 = wf2,
+  rec3 = wf3
+)
+
+# 10-fold CV on training set for each recipe 
+set.seed(123)
+ctrl <- control_resamples(save_pred = TRUE)
+
+cv_results <- purrr::imap_dfr(
+  wfs,
+  ~ fit_resamples(.x, resamples = bike_folds, control = ctrl) |>
+    collect_metrics() |>
+    mutate(model = .y)
+)
+
+# View CV metrics (RMSE lower is better; also R^2 shown)
+cv_results |> arrange(.metric, mean)
+
+```
+
+```{r}
+# Select best by RMSE 
+best_name <- cv_results |>
+  filter(.metric == "rmse") |>
+  arrange(mean) |>
+  slice(1) |>
+  pull(model)
+
+best_wf <- wfs[[best_name]]
+best_name
+
+```
+```{r}
+# Fit best model on entire training and evaluate on test
+set.seed(123)
+final_res <- last_fit(best_wf, split = bike_split)
+
+# Test-set metrics (includes RMSE)
+final_metrics <- collect_metrics(final_res)
+final_metrics
+
+```
+
+```{r}
+# Coefficient table from the final model
+final_coefs <- final_res |>
+  extract_workflow() |>
+  extract_fit_parsnip() |>
+  tidy()
+
+final_coefs
+
+```
 
