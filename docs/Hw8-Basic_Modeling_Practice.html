@@ -57,24 +57,61 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </style>
 
 
-<script src="Hw8-Basic_Modeling_Practice_files/libs/clipboard/clipboard.min.js"></script>
-<script src="Hw8-Basic_Modeling_Practice_files/libs/quarto-html/quarto.js"></script>
-<script src="Hw8-Basic_Modeling_Practice_files/libs/quarto-html/popper.min.js"></script>
-<script src="Hw8-Basic_Modeling_Practice_files/libs/quarto-html/tippy.umd.min.js"></script>
-<script src="Hw8-Basic_Modeling_Practice_files/libs/quarto-html/anchor.min.js"></script>
-<link href="Hw8-Basic_Modeling_Practice_files/libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="Hw8-Basic_Modeling_Practice_files/libs/quarto-html/quarto-syntax-highlighting-2f5df379a58b258e96c21c0638c20c03.css" rel="stylesheet" id="quarto-text-highlighting-styles">
-<script src="Hw8-Basic_Modeling_Practice_files/libs/bootstrap/bootstrap.min.js"></script>
-<link href="Hw8-Basic_Modeling_Practice_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="Hw8-Basic_Modeling_Practice_files/libs/bootstrap/bootstrap-c0367b04c37547644fece4185067e4a7.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<script src="site_libs/quarto-html/quarto.js"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-2f5df379a58b258e96c21c0638c20c03.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-79108a0fc1995748cbd19a5b0e3e3e7c.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
 
 
 </head>
 
 <body class="fullcontent">
 
-<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
-
+<div id="quarto-search-results"></div>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    
+<!-- main -->
 <main class="content" id="quarto-document-content">
 
 <header id="title-block-header" class="quarto-title-block default">
@@ -792,7 +829,7 @@ Functioning Day*             2.00    1.00 -5.17    24.72 0.00</code></pre>
 <pre><code>→ A | warning: prediction from rank-deficient fit; consider predict(., rankdeficient="NA")</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>There were issues with some computations   A: x3</code></pre>
+<pre><code>There were issues with some computations   A: x4</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
 <pre><code>→ B | warning: !  The following column has zero variance so scaling cannot be used:
@@ -801,7 +838,7 @@ Functioning Day*             2.00    1.00 -5.17    24.72 0.00</code></pre>
                  before normalizing.</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>There were issues with some computations   A: x3
+<pre><code>There were issues with some computations   A: x4
 There were issues with some computations   A: x10   B: x2</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
@@ -816,7 +853,7 @@ There were issues with some computations   A: x10   B: x2</code></pre>
                  Seasons_Spring_x_Holiday_Holiday.
                ℹ Consider using ?step_zv (`?recipes::step_zv()`) to remove those columns
                  before normalizing.
-There were issues with some computations   A: x8   B: x1
+There were issues with some computations   A: x9   B: x2
 There were issues with some computations   A: x10   B: x2</code></pre>
 </div>
 <div class="sourceCode cell-code" id="cb80"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb80-1"><a href="#cb80-1" aria-hidden="true" tabindex="-1"></a><span class="co"># View CV metrics (RMSE lower is better; also R^2 shown)</span></span>
@@ -890,10 +927,11 @@ There were issues with some computations   A: x10   B: x2</code></pre>
 # ℹ 20 more rows</code></pre>
 </div>
 </div>
+
+
 </section>
 
-</main>
-<!-- /main column -->
+</main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
 window.document.addEventListener("DOMContentLoaded", function (event) {
   const toggleBodyColorMode = (bsSheetEl) => {
